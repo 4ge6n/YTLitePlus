@@ -146,6 +146,30 @@ jobs:
           YOUTUBE_URL: ${{ env.URL_YT }}
 
       # --- ここが重要な変更点: YTLite をソースから clone ---
+      - name: Install roothide headers
+        run: |
+          mkdir -p $THEOS/include/roothide
+          cat > $THEOS/include/roothide.h << 'HEADER'
+          #ifndef ROOTHIDE_H
+          #define ROOTHIDE_H
+          #ifdef __cplusplus
+          extern "C" {
+          #endif
+          #import <Foundation/Foundation.h>
+          static inline NSString* jbroot(NSString* path) { return path; }
+          static inline const char* jbroot(const char* path) { return path; }
+          #define ROOT_PATH_NS(x) (x)
+          #define ROOT_PATH(x) (x)
+          #ifdef __cplusplus
+          }
+          #endif
+          #endif
+          HEADER
+          echo "roothide stub header created at $THEOS/include/roothide.h"
+          cat $THEOS/include/roothide.h
+        env:
+          THEOS: ${{ github.workspace }}/theos
+
       - name: Clone YTLite Source
         run: |
           echo "Removing existing submodule..."
@@ -154,7 +178,7 @@ jobs:
           git clone --branch v5.2.2 --depth 1 https://github.com/dayanch96/YTLite.git Tweaks/YTLite
           echo "YTLite source files:"
           ls Tweaks/YTLite/*.x Tweaks/YTLite/Utils/*.m Tweaks/YTLite/Makefile
-          echo "Source cloned successfully. No dvnCheck/ytpBool in source = license-free."
+          echo "Source cloned successfully."
 
       - name: Build Package
         id: build_package

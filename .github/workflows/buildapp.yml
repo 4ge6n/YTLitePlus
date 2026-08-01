@@ -148,6 +148,8 @@ jobs:
       # --- ここが重要な変更点: YTLite をソースから clone ---
       - name: Clone YTLite Source
         run: |
+          echo "Removing existing submodule..."
+          rm -rf Tweaks/YTLite
           echo "Cloning YTLite source (v5.2.2 public source - no license checks)..."
           git clone --branch v5.2.2 --depth 1 https://github.com/dayanch96/YTLite.git Tweaks/YTLite
           echo "YTLite source files:"

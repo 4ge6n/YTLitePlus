@@ -178,8 +178,11 @@ jobs:
         run: |
           echo "Building YTLite from source..."
           cd Tweaks/YTLite
+          # Patch Makefile to use the correct SDK version
+          sed -i '' "s/^TARGET.*=.*/TARGET = iphone:clang:${{ inputs.sdk_version }}:14.0/" Makefile
+          sed -i '' "s|^SDK_PATH.*=.*|SDK_PATH = \$(THEOS)/sdks/iPhoneOS${{ inputs.sdk_version }}.sdk/|" Makefile
           THEOS=${{ github.workspace }}/theos make
-          echo "Build complete. Output:"
+          echo "Build complete."
           find . -name "YTLite.dylib" -type f 2>/dev/null
           # Copy to the path expected by the main Makefile's INJECT_DYLIBS
           mkdir -p var/jb/Library/MobileSubstrate/DynamicLibraries/

@@ -24,10 +24,7 @@ BUNDLE_ID = com.google.ios.youtube
 
 YTLitePlus_FILES = YTLitePlus.xm $(shell find Source -name '*.xm' -o -name '*.x' -o -name '*.m')
 YTLitePlus_FRAMEWORKS = UIKit Security
-
-# --- YTLite をソースビルドした dylib を注入（debダウンロード廃止） ---
-YTLitePlus_INJECT_DYLIBS = .theos/obj/YTLite.dylib .theos/obj/libFLEX.dylib .theos/obj/YTUHD.dylib .theos/obj/YouPiP.dylib .theos/obj/YouTubeDislikesReturn.dylib .theos/obj/YTABConfig.dylib .theos/obj/DontEatMyContent.dylib .theos/obj/YTVideoOverlay.dylib .theos/obj/YouTimeStamp.dylib .theos/obj/YouGroupSettings.dylib
-
+YTLitePlus_INJECT_DYLIBS = Tweaks/YTLite/var/jb/Library/MobileSubstrate/DynamicLibraries/YTLite.dylib .theos/obj/libFLEX.dylib .theos/obj/YTUHD.dylib .theos/obj/YouPiP.dylib .theos/obj/YouTubeDislikesReturn.dylib .theos/obj/YTABConfig.dylib .theos/obj/DontEatMyContent.dylib .theos/obj/YTVideoOverlay.dylib .theos/obj/YouTimeStamp.dylib .theos/obj/YouGroupSettings.dylib
 YTLitePlus_EMBED_LIBRARIES = $(THEOS_OBJ_DIR)/libcolorpicker.dylib
 YTLitePlus_EMBED_FRAMEWORKS = $(_THEOS_LOCAL_DATA_DIR)/$(THEOS_OBJ_DIR_NAME)/install_Alderis.xcarchive/Products/var/jb/Library/Frameworks/Alderis.framework
 YTLitePlus_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unsupported-availability-guard -Wno-unused-but-set-variable -DTWEAK_VERSION=$(PACKAGE_VERSION) $(EXTRA_CFLAGS)
@@ -38,8 +35,7 @@ YTLitePlus_USE_FISHHOOK = 0
 include $(THEOS)/makefiles/common.mk
 
 ifneq ($(JAILBROKEN),1)
-# --- YTLite をサブプロジェクトとしてソースビルド ---
-SUBPROJECTS += Tweaks/YTLite Tweaks/Alderis Tweaks/FLEXing/libflex Tweaks/YTUHD Tweaks/YouPiP Tweaks/Return-YouTube-Dislikes Tweaks/YTABConfig Tweaks/DontEatMyContent Tweaks/YTVideoOverlay Tweaks/YouTimeStamp Tweaks/YouGroupSettings
+SUBPROJECTS += Tweaks/Alderis Tweaks/FLEXing/libflex Tweaks/YTUHD Tweaks/YouPiP Tweaks/Return-YouTube-Dislikes Tweaks/YTABConfig Tweaks/DontEatMyContent Tweaks/YTVideoOverlay Tweaks/YouTimeStamp Tweaks/YouGroupSettings
 include $(THEOS_MAKE_PATH)/aggregate.mk
 endif
 include $(THEOS_MAKE_PATH)/tweak.mk
@@ -47,15 +43,3 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 FINALPACKAGE = 1
 REMOVE_EXTENSIONS = 1
 CODESIGN_IPA = 0
-
-# --- YTLite の本体 dylib と bundle をビルド出力から正しい場所にコピー ---
-before-package::
-	@echo "Copying YTLite bundle from source..."
-	@mkdir -p $(THEOS_STAGING_DIR)/Library/Application\ Support
-	@if [ -d Tweaks/YTLite/layout/Library/Application\ Support/YTLite.bundle ]; then \
-		cp -r Tweaks/YTLite/layout/Library/Application\ Support/YTLite.bundle $(THEOS_STAGING_DIR)/Library/Application\ Support/; \
-	elif [ -d Tweaks/YTLite/Resources ]; then \
-		cp -r Tweaks/YTLite/Resources $(THEOS_STAGING_DIR)/Library/Application\ Support/YTLite.bundle 2>/dev/null || true; \
-	else \
-		echo "WARNING: YTLite.bundle not found!"; \
-	fi

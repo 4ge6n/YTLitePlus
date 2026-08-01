@@ -170,12 +170,37 @@ jobs:
           rm -rf Tweaks/YTLite
           echo "Cloning YTLite source (v5.2.2 public source - no license checks)..."
           git clone --branch v5.2.2 --depth 1 https://github.com/dayanch96/YTLite.git Tweaks/YTLite
-          echo "YTLite source files:"
-          ls Tweaks/YTLite/*.x Tweaks/YTLite/Utils/*.m Tweaks/YTLite/Makefile
-          echo "Source cloned successfully."
-          echo "Removing YTNativeShare.x (depends on protobuf headers not in source)..."
+          echo "Source cloned."
           rm -f Tweaks/YTLite/YTNativeShare.x
           echo "Remaining .x files:" Tweaks/YTLite/*.x
+
+      - name: Build YTLite from Source
+        run: |
+          echo "Building YTLite from source..."
+          cd Tweaks/YTLite
+          THEOS=${{ github.workspace }}/theos make
+          echo "Build complete. Output:"
+          find . -name "YTLite.dylib" -type f 2>/dev/null
+          # Copy to the path expected by the main Makefile's INJECT_DYLIBS
+          mkdir -p var/jb/Library/MobileSubstrate/DynamicLibraries/
+          cp ${{ github.workspace }}/.theos/obj/arm64/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/ 2>/dev/null || \
+          cp .theos/obj/arm64/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/ 2>/dev/null || \
+          cp .theos/obj/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/ 2>/dev/null || \
+          (echo "ERROR: YTLite.dylib not found!" && find . -name "*.dylib" && exit 1)
+          # Copy bundle from source layout
+          if [ -d "layout/Library/Application Support/YTLite.bundle" ]; then
+            mkdir -p "var/jb/Library/Application Support"
+            cp -r "layout/Library/Application Support/YTLite.bundle" "var/jb/Library/Application Support/"
+            echo "Bundle copied from layout/"
+          else
+            echo "WARNING: layout/ not found, using Resources/"
+            mkdir -p "var/jb/Library/Application Support/YTLite.bundle"
+            cp -r Resources/* "var/jb/Library/Application Support/YTLite.bundle/" 2>/dev/null || true
+          fi
+          echo "Dylib placed at:"
+          ls -la var/jb/Library/MobileSubstrate/DynamicLibraries/
+        env:
+          THEOS: ${{ github.workspace }}/theos
 
       - name: Build Package
         id: build_package

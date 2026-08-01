@@ -10,7 +10,7 @@ on:
         type: string
       decrypted_youtube_url:
         description: "Direct URL of the decrypted YouTube ipa"
-        default: "https://files.catbox.moe/5a8qlt.ipa"
+        default: "https://hstorage.jp/dl/UR1anTgnOaWj.ipa?download=true"
         required: true
         type: string
       bundle_id:
@@ -173,6 +173,9 @@ jobs:
           echo "YTLite source files:"
           ls Tweaks/YTLite/*.x Tweaks/YTLite/Utils/*.m Tweaks/YTLite/Makefile
           echo "Source cloned successfully."
+          echo "Removing YTNativeShare.x (depends on protobuf headers not in source)..."
+          rm -f Tweaks/YTLite/YTNativeShare.x
+          echo "Remaining .x files:" Tweaks/YTLite/*.x
 
       - name: Build Package
         id: build_package

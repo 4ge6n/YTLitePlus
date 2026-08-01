@@ -175,12 +175,8 @@ jobs:
           sed -i '' "s|^SDK_PATH.*=.*|SDK_PATH = \$(THEOS)/sdks/iPhoneOS${{ inputs.sdk_version }}.sdk/|" Makefile
           THEOS=${{ github.workspace }}/theos make
           cd ${{ github.workspace }}
-          # Copy YTLite.dylib to theos obj dir so INJECT_DYLIBS finds it
-          YT_OBJ=${{ github.workspace }}/.theos/obj/arm64
-          cp Tweaks/YTLite/.theos/obj/arm64/YTLite.dylib .theos/obj/ 2>/dev/null || \
-          cp Tweaks/YTLite/.theos/obj/YTLite.dylib .theos/obj/ 2>/dev/null || \
-          (echo "ERROR: YTLite.dylib not found!" && find Tweaks/YTLite/.theos -name "*.dylib" && exit 1)
-          echo "YTLite.dylib copied to .theos/obj/"
+          mkdir -p .theos/obj
+          cp Tweaks/YTLite/.theos/obj/arm64/YTLite.dylib .theos/obj/YTLite.dylib
           ls -la .theos/obj/YTLite.dylib
           # Copy bundle
           if [ -d "Tweaks/YTLite/layout/Library/Application Support/YTLite.bundle" ]; then

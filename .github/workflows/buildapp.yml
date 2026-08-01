@@ -152,17 +152,11 @@ jobs:
           cat > $THEOS/include/roothide.h << 'HEADER'
           #ifndef ROOTHIDE_H
           #define ROOTHIDE_H
-          #ifdef __cplusplus
-          extern "C" {
-          #endif
           #import <Foundation/Foundation.h>
-          static inline NSString* jbroot(NSString* path) { return path; }
-          static inline const char* jbroot(const char* path) { return path; }
+          static inline NSString* _Nonnull jbroot(NSString* _Nonnull path) { return path; }
+          #define jbroot_c(path) (path)
           #define ROOT_PATH_NS(x) (x)
           #define ROOT_PATH(x) (x)
-          #ifdef __cplusplus
-          }
-          #endif
           #endif
           HEADER
           echo "roothide stub header created at $THEOS/include/roothide.h"

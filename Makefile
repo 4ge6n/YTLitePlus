@@ -24,7 +24,7 @@ BUNDLE_ID = com.google.ios.youtube
 
 YTLitePlus_FILES = YTLitePlus.xm $(shell find Source -name '*.xm' -o -name '*.x' -o -name '*.m')
 YTLitePlus_FRAMEWORKS = UIKit Security
-YTLitePlus_INJECT_DYLIBS = .theos/obj/YTLite.dylib .theos/obj/libFLEX.dylib .theos/obj/YTUHD.dylib .theos/obj/YouPiP.dylib .theos/obj/YouTubeDislikesReturn.dylib .theos/obj/YTABConfig.dylib .theos/obj/DontEatMyContent.dylib .theos/obj/YTVideoOverlay.dylib .theos/obj/YouTimeStamp.dylib .theos/obj/YouGroupSettings.dylib
+YTLitePlus_INJECT_DYLIBS = $(YTLITE_DYLIB) .theos/obj/libFLEX.dylib .theos/obj/YTUHD.dylib .theos/obj/YouPiP.dylib .theos/obj/YouTubeDislikesReturn.dylib .theos/obj/YTABConfig.dylib .theos/obj/DontEatMyContent.dylib .theos/obj/YTVideoOverlay.dylib .theos/obj/YouTimeStamp.dylib .theos/obj/YouGroupSettings.dylib
 YTLitePlus_EMBED_LIBRARIES = $(THEOS_OBJ_DIR)/libcolorpicker.dylib
 YTLitePlus_EMBED_FRAMEWORKS = $(_THEOS_LOCAL_DATA_DIR)/$(THEOS_OBJ_DIR_NAME)/install_Alderis.xcarchive/Products/var/jb/Library/Frameworks/Alderis.framework
 YTLitePlus_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unsupported-availability-guard -Wno-unused-but-set-variable -DTWEAK_VERSION=$(PACKAGE_VERSION) $(EXTRA_CFLAGS)
@@ -43,3 +43,8 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 FINALPACKAGE = 1
 REMOVE_EXTENSIONS = 1
 CODESIGN_IPA = 0
+
+# YTLite paths (dylib+bundle placed by workflow before make runs)
+YTLITE_PATH = Tweaks/YTLite
+YTLITE_DYLIB = $(YTLITE_PATH)/var/jb/Library/MobileSubstrate/DynamicLibraries/YTLite.dylib
+YTLITE_BUNDLE = $(YTLITE_PATH)/var/jb/Library/Application\ Support/YTLite.bundle

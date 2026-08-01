@@ -145,7 +145,6 @@ jobs:
           THEOS: ${{ github.workspace }}/theos
           YOUTUBE_URL: ${{ env.URL_YT }}
 
-      # --- ここが重要な変更点: YTLite をソースから clone ---
       - name: Install roothide headers
         run: |
           mkdir -p $THEOS/include/roothide
@@ -159,49 +158,38 @@ jobs:
           #define ROOT_PATH(x) (x)
           #endif
           HEADER
-          echo "roothide stub header created at $THEOS/include/roothide.h"
-          cat $THEOS/include/roothide.h
+          echo "roothide stub header created"
         env:
           THEOS: ${{ github.workspace }}/theos
 
       - name: Clone YTLite Source
         run: |
-          echo "Removing existing submodule..."
           rm -rf Tweaks/YTLite
-          echo "Cloning YTLite source (v5.2.2 public source - no license checks)..."
           git clone --branch v5.2.2 --depth 1 https://github.com/dayanch96/YTLite.git Tweaks/YTLite
-          echo "Source cloned."
           rm -f Tweaks/YTLite/YTNativeShare.x
-          echo "Remaining .x files:" Tweaks/YTLite/*.x
 
       - name: Build YTLite from Source
         run: |
-          echo "Building YTLite from source..."
           cd Tweaks/YTLite
-          # Patch Makefile to use the correct SDK version
           sed -i '' "s/^TARGET.*=.*/TARGET = iphone:clang:${{ inputs.sdk_version }}:14.0/" Makefile
           sed -i '' "s|^SDK_PATH.*=.*|SDK_PATH = \$(THEOS)/sdks/iPhoneOS${{ inputs.sdk_version }}.sdk/|" Makefile
           THEOS=${{ github.workspace }}/theos make
-          echo "Build complete."
-          find . -name "YTLite.dylib" -type f 2>/dev/null
-          # Copy to the path expected by the main Makefile's INJECT_DYLIBS
           mkdir -p var/jb/Library/MobileSubstrate/DynamicLibraries/
-          cp ${{ github.workspace }}/.theos/obj/arm64/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/ 2>/dev/null || \
-          cp .theos/obj/arm64/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/ 2>/dev/null || \
-          cp .theos/obj/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/ 2>/dev/null || \
-          (echo "ERROR: YTLite.dylib not found!" && find . -name "*.dylib" && exit 1)
-          # Copy bundle from source layout
+          OBJ_DIR=${{ github.workspace }}/.theos/obj/arm64
+          if [ -f "$OBJ_DIR/YTLite.dylib" ]; then
+            cp "$OBJ_DIR/YTLite.dylib" var/jb/Library/MobileSubstrate/DynamicLibraries/
+          elif [ -f ".theos/obj/arm64/YTLite.dylib" ]; then
+            cp .theos/obj/arm64/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/
+          else
+            echo "ERROR: YTLite.dylib not found!"
+            find . -name "*.dylib"
+            exit 1
+          fi
           if [ -d "layout/Library/Application Support/YTLite.bundle" ]; then
             mkdir -p "var/jb/Library/Application Support"
             cp -r "layout/Library/Application Support/YTLite.bundle" "var/jb/Library/Application Support/"
-            echo "Bundle copied from layout/"
-          else
-            echo "WARNING: layout/ not found, using Resources/"
-            mkdir -p "var/jb/Library/Application Support/YTLite.bundle"
-            cp -r Resources/* "var/jb/Library/Application Support/YTLite.bundle/" 2>/dev/null || true
           fi
-          echo "Dylib placed at:"
-          ls -la var/jb/Library/MobileSubstrate/DynamicLibraries/
+          echo "YTLite built and staged."
         env:
           THEOS: ${{ github.workspace }}/theos
 
@@ -210,16 +198,15 @@ jobs:
         run: |
           sed -i '' "s/^BUNDLE_ID.*$/BUNDLE_ID = ${{ env.BUNDLE_ID }}/" Makefile
           sed -i '' "s/^DISPLAY_NAME.*$/DISPLAY_NAME = ${{ env.APP_NAME }}/" Makefile
-          sed -i '' "s/^PACKAGE_VERSION.*$/PACKAGE_VERSION = ${{ env.YT_VERSION }}-5.2.2-free/" Makefile
+          sed -i '' "s/^PACKAGE_VERSION.*$/PACKAGE_VERSION = ${{ env.YT_VERSION }}-5.2.2/" Makefile
           sed -i '' "s/^export TARGET.*$/export TARGET = iphone:clang:${{ inputs.sdk_version }}:14.0/" Makefile
-          sed -i '' "s/^export SDK_PATH.*$/export SDK_PATH = \$(THEOS)\/sdks\/iPhoneOS${{ inputs.sdk_version }}.sdk\//" Makefile
-          echo "YTLITE_VERSION=5.2.2-free" >> $GITHUB_ENV
+          sed -i '' "s|^export SDK_PATH.*$|export SDK_PATH = \$(THEOS)/sdks/iPhoneOS${{ inputs.sdk_version }}.sdk/|" Makefile
+          echo "YTLITE_VERSION=5.2.2" >> $GITHUB_ENV
           echo "YT_VERSION=${{ env.YT_VERSION }}" >> $GITHUB_ENV
           make package SIDELOAD=1 THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1
-          (mv "packages/$(ls -t packages | head -n1)" "packages/YTLitePlus_${{ env.YT_VERSION }}_5.2.2-free.ipa")
+          (mv "packages/$(ls -t packages | head -n1)" "packages/YTLitePlus_${{ env.YT_VERSION }}_5.2.2.ipa")
           echo "package=$(ls -t packages | head -n1)" >> $GITHUB_OUTPUT
-          echo -e "==> \033[1mSHASUM256: $(shasum -a 256 packages/*.ipa | cut -f1 -d' ')\033[0m"
-          echo -e "==> \033[1mBundle ID: ${{ env.BUNDLE_ID }}\033[0m"
+          echo -e "==> SHASUM256: $(shasum -a 256 packages/*.ipa | cut -f1 -d' ')"
         env:
           THEOS: ${{ github.workspace }}/theos
           BUNDLE_ID: ${{ inputs.bundle_id }}
@@ -229,39 +216,30 @@ jobs:
         if: ${{ inputs.upload_artifact }}
         uses: actions/upload-artifact@v4.5.0
         with:
-          name: YTLitePlus_${{ env.YT_VERSION }}_5.2.2-free
+          name: YTLitePlus_${{ env.YT_VERSION }}_5.2.2
           path: packages/${{ steps.build_package.outputs.package }}
           if-no-files-found: error
 
-      - name: Upload Artifact to Catbox
+      - name: Upload to Catbox
         if: ${{ inputs.catbox_upload }}
         run: |
           RESPONSE=$(curl -F "reqtype=fileupload" -F "fileToUpload=@packages/${{ steps.build_package.outputs.package }}" https://catbox.moe/user/api.php)
           CATBOX_URL=$(echo $RESPONSE | grep -o -E 'https://files.catbox.moe/[^"]*')
           echo "Uploaded to $CATBOX_URL"
-          CATBOX_FILE=$(echo $CATBOX_URL | sed 's|https://files.catbox.moe/||')
-          echo "CATBOX_FILE=$CATBOX_FILE" >> $GITHUB_ENV
+          echo "CATBOX_FILE=$(echo $CATBOX_URL | sed 's|https://files.catbox.moe/||')" >> $GITHUB_ENV
           echo "CATBOX_URL=$CATBOX_URL" >> $GITHUB_ENV
 
       - name: Prepare Release Notes
         if: ${{ inputs.create_release }}
         run: |
-          export TODAY=$(date '+%Y-%m-%d')
           cat > release_notes.md << NOTES
-          ## YTLitePlus ${{ env.YT_VERSION }}-5.2.2-free
+          ## YTLitePlus ${{ env.YT_VERSION }}-5.2.2
 
-          **YTLite built from public source — no license checks**
+          **YTLite built from public source**
 
           - YouTube: ${{ env.YT_VERSION }}
-          - YTLite: 5.2.2 (source-built from dayanch96/YTLite public repo)
-          - Built: $TODAY
-          - Catbox: ${{ env.CATBOX_FILE }}
-
-          ### What's different from the official release
-          YTLite.dylib is compiled directly from the public source code at
-          [dayanch96/YTLite](https://github.com/dayanch96/YTLite) tag v5.2.2,
-          which does not contain any license/DRM code (dvnCheck, ytpBool,
-          ptnRegisterBlock, etc.). All features work without a subscription.
+          - YTLite: 5.2.2 (source-built)
+          - Built: $(date '+%Y-%m-%d')
           NOTES
 
       - name: Create Draft Release
@@ -271,13 +249,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ env.YT_VERSION }}-5.2.2-free
-          name: v${{ env.YT_VERSION }}-5.2.2-free - YTLitePlus
+          tag_name: v${{ env.YT_VERSION }}-5.2.2
+          name: v${{ env.YT_VERSION }}-5.2.2 - YTLitePlus
           files: packages/*.ipa
           draft: true
           body_path: release_notes.md
 
       - name: Job Summary
         run: |
-          echo -e '### Build Complete — License-Free YTLite' >> $GITHUB_STEP_SUMMARY
-          echo -e 'YTLite compiled from public source. No Patreon checks.' >> $GITHUB_STEP_SUMMARY
+          echo -e '### Build Complete' >> $GITHUB_STEP_SUMMARY
+          echo -e 'YTLite compiled from public source.' >> $GITHUB_STEP_SUMMARY

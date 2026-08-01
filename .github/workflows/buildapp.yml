@@ -174,22 +174,20 @@ jobs:
           sed -i '' "s/^TARGET.*=.*/TARGET = iphone:clang:${{ inputs.sdk_version }}:14.0/" Makefile
           sed -i '' "s|^SDK_PATH.*=.*|SDK_PATH = \$(THEOS)/sdks/iPhoneOS${{ inputs.sdk_version }}.sdk/|" Makefile
           THEOS=${{ github.workspace }}/theos make
-          mkdir -p var/jb/Library/MobileSubstrate/DynamicLibraries/
-          OBJ_DIR=${{ github.workspace }}/.theos/obj/arm64
-          if [ -f "$OBJ_DIR/YTLite.dylib" ]; then
-            cp "$OBJ_DIR/YTLite.dylib" var/jb/Library/MobileSubstrate/DynamicLibraries/
-          elif [ -f ".theos/obj/arm64/YTLite.dylib" ]; then
-            cp .theos/obj/arm64/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/
-          else
-            echo "ERROR: YTLite.dylib not found!"
-            find . -name "*.dylib"
-            exit 1
+          cd ${{ github.workspace }}
+          # Copy YTLite.dylib to theos obj dir so INJECT_DYLIBS finds it
+          YT_OBJ=${{ github.workspace }}/.theos/obj/arm64
+          cp Tweaks/YTLite/.theos/obj/arm64/YTLite.dylib .theos/obj/ 2>/dev/null || \
+          cp Tweaks/YTLite/.theos/obj/YTLite.dylib .theos/obj/ 2>/dev/null || \
+          (echo "ERROR: YTLite.dylib not found!" && find Tweaks/YTLite/.theos -name "*.dylib" && exit 1)
+          echo "YTLite.dylib copied to .theos/obj/"
+          ls -la .theos/obj/YTLite.dylib
+          # Copy bundle
+          if [ -d "Tweaks/YTLite/layout/Library/Application Support/YTLite.bundle" ]; then
+            mkdir -p "Tweaks/YTLite/var/jb/Library/Application Support"
+            cp -r "Tweaks/YTLite/layout/Library/Application Support/YTLite.bundle" "Tweaks/YTLite/var/jb/Library/Application Support/"
+            echo "Bundle staged."
           fi
-          if [ -d "layout/Library/Application Support/YTLite.bundle" ]; then
-            mkdir -p "var/jb/Library/Application Support"
-            cp -r "layout/Library/Application Support/YTLite.bundle" "var/jb/Library/Application Support/"
-          fi
-          echo "YTLite built and staged."
         env:
           THEOS: ${{ github.workspace }}/theos
 

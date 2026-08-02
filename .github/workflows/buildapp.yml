@@ -174,16 +174,17 @@ jobs:
           sed -i '' "s/^TARGET.*=.*/TARGET = iphone:clang:${{ inputs.sdk_version }}:14.0/" Makefile
           sed -i '' "s|^SDK_PATH.*=.*|SDK_PATH = \$(THEOS)/sdks/iPhoneOS${{ inputs.sdk_version }}.sdk/|" Makefile
           THEOS=${{ github.workspace }}/theos make
-          # Place dylib at path expected by main Makefile
-          mkdir -p var/jb/Library/MobileSubstrate/DynamicLibraries/
-          cp .theos/obj/arm64/YTLite.dylib var/jb/Library/MobileSubstrate/DynamicLibraries/
-          # Place bundle
+          # Copy YTLite dylib + bundle to theos staging dir
+          STAGE="${{ github.workspace }}/.theos/_/Library/MobileSubstrate/DynamicLibraries"
+          mkdir -p "$STAGE"
+          cp .theos/obj/arm64/YTLite.dylib "$STAGE/YTLite.dylib"
+          mkdir -p "${{ github.workspace }}/.theos/obj"
+          cp .theos/obj/arm64/YTLite.dylib "${{ github.workspace }}/.theos/obj/YTLite.dylib"
           if [ -d "layout/Library/Application Support/YTLite.bundle" ]; then
-            mkdir -p "var/jb/Library/Application Support"
-            cp -r "layout/Library/Application Support/YTLite.bundle" "var/jb/Library/Application Support/"
-            echo "Bundle staged."
+            mkdir -p "${{ github.workspace }}/.theos/_/Library/Application Support"
+            cp -r "layout/Library/Application Support/YTLite.bundle" "${{ github.workspace }}/.theos/_/Library/Application Support/"
           fi
-          ls -la var/jb/Library/MobileSubstrate/DynamicLibraries/
+          echo "YTLite staged to .theos/obj/ and .theos/_/"
         env:
           THEOS: ${{ github.workspace }}/theos
 
